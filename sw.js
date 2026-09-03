@@ -1,7 +1,7 @@
-const CACHE_NAME='usa-trip-2026-v11-20260903';
-const RUNTIME='usa-trip-runtime-v11';
+const CACHE_NAME='usa-trip-2026-v12-weather-20260903';
+const RUNTIME='usa-trip-runtime-v12-weather';
 const APP_SHELL=[
-  './','./index.html','./config.js','./cloud.js','./manifest.webmanifest','./offline.html',
+  './','./index.html','./config.js','./cloud.js','./weather.js','./manifest.webmanifest','./offline.html',
   './icons/icon-192.png','./icons/icon-512.png'
 ];
 
