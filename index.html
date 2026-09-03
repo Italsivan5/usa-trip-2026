@@ -902,5 +902,21 @@ renderDays();renderBudget();renderResources();initMap();
 <script src="./cloud.js"></script>
 <script src="./weather.js"></script>
 
+<script>
+/* PWA service-worker registration */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+      console.log('USA Trip PWA service worker registered:', reg.scope);
+      // Check for a newer worker whenever the app is opened.
+      reg.update().catch(() => {});
+    } catch (err) {
+      console.error('USA Trip PWA service worker registration failed:', err);
+    }
+  });
+}
+</script>
+
 </body>
 </html>
