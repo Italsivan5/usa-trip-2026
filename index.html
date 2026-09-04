@@ -322,6 +322,36 @@ body::after{background:rgba(255,248,237,.24)!important}
 .weather-panel-foot a{color:inherit;text-decoration:underline}
 .weather-offline{font-weight:700;color:#8a6a34}
 
+
+/* V13 — editable day title & image */
+.day-card{position:relative}
+.day-edit-fab{
+  position:absolute;left:8px;top:8px;z-index:5;
+  width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.75);
+  background:rgba(255,255,255,.92);box-shadow:0 2px 10px rgba(0,0,0,.16);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px
+}
+.day-edit-fab:hover{background:#fff;transform:translateY(-1px)}
+.day-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.day-edit-grid .full{grid-column:1/-1}
+.day-image-preview{
+  width:100%;height:220px;border-radius:10px;border:1px solid var(--line);
+  background:#eee center/cover no-repeat;position:relative;overflow:hidden
+}
+.day-image-preview::after{
+  content:"תצוגה מקדימה";position:absolute;bottom:8px;right:8px;
+  padding:4px 7px;background:rgba(0,0,0,.55);color:white;border-radius:6px;font-size:9px
+}
+.day-edit-help{font-size:10px;color:var(--muted);line-height:1.55;margin-top:6px}
+.day-edit-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.day-edit-actions button{min-height:36px}
+.upload-status{font-size:10px;color:var(--muted);margin-top:6px;min-height:18px}
+@media(max-width:650px){
+  .day-edit-grid{grid-template-columns:1fr}
+  .day-edit-grid .full{grid-column:auto}
+  .day-image-preview{height:190px}
+}
+
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -467,6 +497,7 @@ state.notes=state.notes||{};
 state.done=state.done||{};
 state.visited=state.visited||{};
 state.stopEdits=state.stopEdits||{};
+state.dayEdits=state.dayEdits||{};
 function ensureCustomIds(){
   ['expenses','reservations','activities','places'].forEach(kind=>{
     state[kind]=(state[kind]||[]).map((x,i)=>{
@@ -484,6 +515,20 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function maps(q){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q||'');}
 function dDisplay(iso){try{return new Intl.DateTimeFormat('he-IL',{day:'2-digit',month:'2-digit'}).format(new Date(iso+'T12:00:00'));}catch{return iso}}
 function dayShort(d){return (d.quick||[]).slice(0,3).map(x=>x[1]).join(' • ');}
+function getDayEdit(d){return (state.dayEdits&&state.dayEdits[d.date])||{};}
+function dayTitle(d){
+ const t=String(getDayEdit(d).title||'').trim();
+ return t||d.title;
+}
+function dayImageOverride(d){
+ const u=String(getDayEdit(d).imageUrl||'').trim();
+ return u;
+}
+function dayImageFor(i){
+ const d=DAYS[i],custom=dayImageOverride(d);
+ return custom||dayMapFallback(i);
+}
+
 
 function dayMapFallback(i){
  const v=DAY_VISUALS[i]||DAY_VISUALS[0];
@@ -493,7 +538,12 @@ const DAY_PHOTO_CACHE=JSON.parse(localStorage.getItem('usa2026_day_photo_cache')
 async function hydrateDayPhotos(){
  const nodes=[...document.querySelectorAll('.day-img[data-day-image]')];
  for(const el of nodes){
-   const i=Number(el.dataset.dayImage),v=DAY_VISUALS[i];
+   const i=Number(el.dataset.dayImage),v=DAY_VISUALS[i],d=DAYS[i];
+   const custom=d?dayImageOverride(d):'';
+   if(custom){
+     el.style.backgroundImage=`linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.08)),url("${custom}")`;
+     continue;
+   }
    if(!v||!v.wiki) continue;
    if(DAY_PHOTO_CACHE[v.wiki]){
      el.style.backgroundImage=`linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.08)),url("${DAY_PHOTO_CACHE[v.wiki]}")`;
@@ -520,15 +570,19 @@ function renderDays(filter=''){
  if(reversed) arr.reverse();
  const q=filter.trim().toLowerCase();
  arr.forEach(({d,i})=>{
-   const hay=(d.title+' '+d.hotel+' '+dayShort(d)).toLowerCase();
+   const effectiveTitle=dayTitle(d);
+   const hay=(effectiveTitle+' '+d.hotel+' '+dayShort(d)).toLowerCase();
    if(q && !hay.includes(q))return;
-   const c=document.createElement('button');
+   const c=document.createElement('div');
    c.className='day-card';c.style.textAlign='right';c.style.padding='0';c.style.cursor='pointer';c.style.color='inherit';
+   c.setAttribute('role','button');c.tabIndex=0;
    c.onclick=()=>openDay(i);
-   c.innerHTML=`<div class="day-img" data-day-image="${i}" style="background-image:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.08)),url('${dayMapFallback(i)}')"></div>
+   c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDay(i)}};
+   c.innerHTML=`<button class="day-edit-fab" title="עריכת כותרת ותמונה" aria-label="עריכת היום" onclick="event.stopPropagation();editDay(${i})">✏️</button>
+   <div class="day-img" data-day-image="${i}" style="background-image:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.08)),url('${dayImageFor(i)}')"></div>
    <div class="day-body">
      <div class="day-num">יום ${i+1} • ${esc(d.display)}</div>
-     <div class="day-title">${esc(d.title)}</div>
+     <div class="day-title">${esc(effectiveTitle)}</div>
      <div class="day-summary">${esc(dayShort(d))}</div>
      <div class="day-weather" data-weather-card-date="${d.date}"><span class="weather-mini waiting">🌦️ טוען תחזית…</span></div>
      <div class="day-meta"><span class="badge">🍴 ${(d.food||[]).length}</span><span class="badge">⭐ ${(d.fomo||[]).length}</span></div>
@@ -636,8 +690,9 @@ function openDay(i){
  const res=[...BASE_RESERVATIONS,...state.reservations].filter(x=>x.date===d.date).map(x=>`<div class="info-block"><b>${esc(x.time||'')} • ${esc(x.title)}</b><p>${esc(x.note||'')}</p></div>`).join('');
 
  document.getElementById('modalBody').innerHTML=`
-  <h2>יום ${i+1} • ${esc(d.title)}</h2>
+  <h2>יום ${i+1} • ${esc(dayTitle(d))}</h2>
   <div class="modal-sub">${esc(d.display)} • ${esc(d.weekday)} ${d.hotel?'• 🏨 '+esc(d.hotel):''}</div>
+  <div style="margin:8px 0 4px"><button class="sm-btn edit-btn" onclick="editDay(${i})">✏️ עריכת כותרת ותמונה</button></div>
   <div class="weather-panel" data-weather-day-date="${d.date}">🌦️ טוען תחזית מזג אוויר…</div>
   ${res?`<h3>☑ הזמנות / שעות קשיחות</h3><div class="blocks">${res}</div>`:''}
   <h3>🧭 המסלול שלנו</h3><div class="timeline">${stops}</div>
@@ -651,11 +706,113 @@ function openDay(i){
  openModal();
  if(window.TripWeather) TripWeather.hydrateDay(d.date);
 }
+
+function safeImageUrl(v){
+ const s=String(v||'').trim();
+ if(!s)return '';
+ try{
+   const u=new URL(s,location.href);
+   if(u.protocol==='https:'||u.protocol==='http:')return u.href;
+ }catch(e){}
+ return '';
+}
+function editDay(i){
+ const d=DAYS[i],ed=getDayEdit(d),img=dayImageOverride(d)||dayMapFallback(i);
+ document.getElementById('modalBody').innerHTML=`
+   <h2>✏️ עריכת יום ${i+1}</h2>
+   <div class="modal-sub">${esc(d.display)} • שינוי הכותרת והתמונה נשמר בענן ומופיע בכל המכשירים.</div>
+   <div class="day-edit-grid">
+     <div class="field full">
+       <label>כותרת היום</label>
+       <input id="dayEditTitle" value="${esc(dayTitle(d))}" placeholder="${esc(d.title)}">
+       <div class="day-edit-help">אפשר לשנות רק את הכותרת העיצובית. המסלול עצמו אינו משתנה.</div>
+     </div>
+     <div class="field full">
+       <label>תמונת היום</label>
+       <div id="dayImagePreview" class="day-image-preview" style="background-image:url('${esc(img)}')"></div>
+     </div>
+     <div class="field">
+       <label>📷 העלאה מהמכשיר</label>
+       <input id="dayImageFile" type="file" accept="image/*" onchange="previewDayImageFile(this)">
+       <div class="day-edit-help">התמונה תכווץ אוטומטית לפני ההעלאה ל-Supabase Storage.</div>
+     </div>
+     <div class="field">
+       <label>🔗 או כתובת תמונה</label>
+       <input id="dayImageUrl" value="${esc(ed.imageUrl||'')}" placeholder="https://..." oninput="previewDayImageUrl(this.value,${i})">
+       <div class="day-edit-help">אם בוחרים קובץ מהמכשיר, הוא יקבל עדיפות על URL.</div>
+     </div>
+   </div>
+   <div id="dayUploadStatus" class="upload-status"></div>
+   <div class="day-edit-actions">
+     <button class="primary" onclick="saveDayEdit(${i})">💾 שמור</button>
+     <button class="secondary" onclick="openDay(${i})">חזור בלי לשמור</button>
+     <button class="secondary danger-lite" onclick="resetDayEdit(${i})">↩️ איפוס כותרת ותמונה למקור</button>
+   </div>`;
+ openModal();
+}
+function previewDayImageUrl(value,i){
+ const p=document.getElementById('dayImagePreview');if(!p)return;
+ const u=safeImageUrl(value);
+ p.style.backgroundImage=`url('${u||dayMapFallback(i)}')`;
+}
+function previewDayImageFile(input){
+ const p=document.getElementById('dayImagePreview');
+ const file=input?.files?.[0];
+ if(!p||!file)return;
+ const u=URL.createObjectURL(file);
+ p.style.backgroundImage=`url('${u}')`;
+ setTimeout(()=>URL.revokeObjectURL(u),30000);
+}
+async function saveDayEdit(i){
+ const d=DAYS[i];
+ const title=(document.getElementById('dayEditTitle')?.value||'').trim();
+ const file=document.getElementById('dayImageFile')?.files?.[0]||null;
+ const typedUrl=(document.getElementById('dayImageUrl')?.value||'').trim();
+ const statusEl=document.getElementById('dayUploadStatus');
+ let imageUrl=safeImageUrl(typedUrl);
+
+ if(typedUrl && !imageUrl){
+   return alert('כתובת התמונה אינה תקינה. יש להשתמש בכתובת שמתחילה ב-http:// או https://');
+ }
+ if(file){
+   if(!window.TripCloud||!TripCloud.isSignedIn||!TripCloud.isSignedIn()){
+     return alert('כדי להעלות תמונה מהמכשיר צריך להיות מחוברים לענן. אפשר גם להדביק URL של תמונה.');
+   }
+   try{
+     if(statusEl)statusEl.textContent='📤 מכווץ ומעלה את התמונה…';
+     imageUrl=await TripCloud.uploadDayImage(d.date,file);
+     if(statusEl)statusEl.textContent='✅ התמונה הועלתה בהצלחה';
+   }catch(err){
+     console.error(err);
+     if(statusEl)statusEl.textContent='⚠️ העלאת התמונה נכשלה';
+     return alert('העלאת התמונה נכשלה. ודאו שהרצתם את SQL של Storage ושאתם מחוברים לענן.');
+   }
+ }
+
+ state.dayEdits[d.date]={
+   title:title && title!==d.title ? title : '',
+   imageUrl:imageUrl||''
+ };
+ if(!state.dayEdits[d.date].title && !state.dayEdits[d.date].imageUrl)delete state.dayEdits[d.date];
+ save();
+ renderDays(document.getElementById('daySearch')?.value||'');
+ openDay(i);
+}
+function resetDayEdit(i){
+ const d=DAYS[i];
+ if(!confirm('לאפס את הכותרת והתמונה של היום לגרסה המקורית?'))return;
+ delete state.dayEdits[d.date];
+ save();
+ renderDays(document.getElementById('daySearch')?.value||'');
+ openDay(i);
+}
+
+
 function editStop(di,si){
  const d=DAYS[di],s=getEditedStop(d,si);
  document.getElementById('modalBody').innerHTML=`
    <h2>✏️ עריכת תחנה</h2>
-   <div class="modal-sub">יום ${di+1} • ${esc(d.title)}</div>
+   <div class="modal-sub">יום ${di+1} • ${esc(dayTitle(d))}</div>
    <div class="form-grid">
      <div class="field"><label>שעה / זמן</label><input id="editTime" value="${esc(s.time)}"></div>
      <div class="field"><label>שם התחנה</label><input id="editTitle" value="${esc(s.title)}"></div>

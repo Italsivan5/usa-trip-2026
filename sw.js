@@ -1,5 +1,5 @@
-const CACHE_NAME='usa-trip-2026-v12-weather-20260903';
-const RUNTIME='usa-trip-runtime-v12-weather';
+const CACHE_NAME='usa-trip-2026-v13-day-editor-20260904';
+const RUNTIME='usa-trip-runtime-v13-day-editor';
 const APP_SHELL=[
   './','./index.html','./config.js','./cloud.js','./weather.js','./manifest.webmanifest','./offline.html',
   './icons/icon-192.png','./icons/icon-512.png'
@@ -37,6 +37,10 @@ self.addEventListener('fetch',event=>{
     return;
   }
   if(url.origin===self.location.origin){
+    event.respondWith(staleWhileRevalidate(req));
+    return;
+  }
+  if(req.destination==='image'){
     event.respondWith(staleWhileRevalidate(req));
     return;
   }

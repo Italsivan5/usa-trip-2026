@@ -49,12 +49,14 @@
     s.done=s.done&&typeof s.done==='object'?s.done:{};
     s.visited=s.visited&&typeof s.visited==='object'?s.visited:{};
     s.stopEdits=s.stopEdits&&typeof s.stopEdits==='object'?s.stopEdits:{};
+    s.dayEdits=s.dayEdits&&typeof s.dayEdits==='object'?s.dayEdits:{};
     return s;
   }
   function meaningful(s){
     s=normalize(JSON.parse(JSON.stringify(s||{})));
     return s.expenses.length||s.reservations.length||s.activities.length||s.places.length||
-      Object.keys(s.notes).length||Object.keys(s.done).length||Object.keys(s.visited).length||Object.keys(s.stopEdits).length;
+      Object.keys(s.notes).length||Object.keys(s.done).length||Object.keys(s.visited).length||
+      Object.keys(s.stopEdits).length||Object.keys(s.dayEdits).length;
   }
   function cloneState(){return JSON.parse(JSON.stringify(normalize(state)))}
   function refreshUI(){
@@ -287,6 +289,53 @@
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   }
 
+
+  function isSignedIn(){return !!(client&&session?.user?.id);}
+
+  async function resizeImageForUpload(file){
+    if(!file || !String(file.type||'').startsWith('image/'))throw new Error('יש לבחור קובץ תמונה.');
+    const dataUrl=await new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onload=()=>resolve(fr.result);
+      fr.onerror=reject;
+      fr.readAsDataURL(file);
+    });
+    const img=await new Promise((resolve,reject)=>{
+      const im=new Image();
+      im.onload=()=>resolve(im);
+      im.onerror=reject;
+      im.src=dataUrl;
+    });
+    const MAX_W=1600,MAX_H=1100;
+    const scale=Math.min(1,MAX_W/img.naturalWidth,MAX_H/img.naturalHeight);
+    const w=Math.max(1,Math.round(img.naturalWidth*scale));
+    const h=Math.max(1,Math.round(img.naturalHeight*scale));
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+    ctx.drawImage(img,0,0,w,h);
+    const blob=await new Promise((resolve,reject)=>{
+      canvas.toBlob(b=>b?resolve(b):reject(new Error('לא ניתן לעבד את התמונה.')),'image/jpeg',0.84);
+    });
+    if(blob.size>5*1024*1024)throw new Error('התמונה עדיין גדולה מדי לאחר הכיווץ.');
+    return blob;
+  }
+
+  async function uploadDayImage(date,file){
+    if(!isSignedIn())throw new Error('יש להתחבר לענן לפני העלאת תמונה.');
+    if(!navigator.onLine)throw new Error('העלאת תמונה דורשת חיבור לאינטרנט.');
+    const blob=await resizeImageForUpload(file);
+    const safeDate=String(date||'day').replace(/[^0-9A-Za-z_-]/g,'_');
+    const path=`${session.user.id}/${TRIP_ID}/${safeDate}.jpg`;
+    const {error}=await client.storage.from('trip-images').upload(path,blob,{
+      contentType:'image/jpeg',upsert:true,cacheControl:'3600'
+    });
+    if(error)throw error;
+    const {data}=client.storage.from('trip-images').getPublicUrl(path);
+    if(!data?.publicUrl)throw new Error('לא התקבלה כתובת ציבורית לתמונה.');
+    return `${data.publicUrl}?v=${Date.now()}`;
+  }
+
   async function init(){
     if('serviceWorker' in navigator){
       window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW',e)));
@@ -322,7 +371,8 @@
     onLocalSave:queueSync,
     openPanel,login,logout,
     syncNow:()=>pushLocal(false),
-    resolveConflict,finishFirstBind,exportBackup
+    resolveConflict,finishFirstBind,exportBackup,
+    isSignedIn,uploadDayImage
   };
   init();
 })();
