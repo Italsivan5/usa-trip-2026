@@ -1,8 +1,8 @@
-const CACHE_NAME='usa-trip-2026-v13-day-editor-20260904';
-const RUNTIME='usa-trip-runtime-v13-day-editor';
+const CACHE_NAME='usa-trip-2026-v13-1-root-icons-20260904';
+const RUNTIME='usa-trip-runtime-v13-1-root-icons';
 const APP_SHELL=[
   './','./index.html','./config.js','./cloud.js','./weather.js','./manifest.webmanifest','./offline.html',
-  './icons/icon-192.png','./icons/icon-512.png'
+  './icon-192.png','./icon-512.png'
 ];
 
 self.addEventListener('install',event=>{
