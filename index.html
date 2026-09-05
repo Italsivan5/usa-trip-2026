@@ -963,13 +963,17 @@ function openCollection(kind){
   state.reservations.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).forEach(x=>rows+=`<div class="list-row"><div>${dDisplay(x.date)}<br><small>${esc(x.time||'')}</small></div><div><span class="user-added-badge">נוסף על ידינו</span><b>${esc(x.title)}</b><br><small>${esc(x.note||'')}</small></div><div><button class="sm-btn edit-btn" onclick="openAdd('reservation','${x._id}')">✏️ עריכה</button></div></div>`);
  } else if(kind==='documents'){
   title='▣ מסמכים';
+  toolbar=`<button class="primary" onclick="window.open('./usa_trip_parking_transit_summary.pdf','_blank')">📄 פתיחת PDF — חניה ותחבורה ציבורית</button>`;
   const docs=['דרכונים לכל 6 הנוסעים','ESTA / אישורי כניסה','ביטוח נסיעות + מספר חירום','PNR ואישורי טיסות','אישורי מלונות','אישור Alamo וביטוח הרכב','Cape May–Lewes Ferry','כרטיסי האטרקציות','צילומי דרכונים Offline'];
-  rows=docs.map(x=>`<div class="list-row"><div>📄</div><div>${esc(x)}</div><div></div></div>`).join('');
+  rows=`<div class="list-row"><div>🅿️</div><div><b>סיכום חניה ותחבורה ציבורית</b><br><small>PDF מרוכז: חניה לפי המסלול, אפליקציות, Washington DC, NJ TRANSIT ו־OMNY.</small></div><div><button class="sm-btn" onclick="window.open('./usa_trip_parking_transit_summary.pdf','_blank')">פתח PDF</button></div></div>`+
+       docs.map(x=>`<div class="list-row"><div>📄</div><div>${esc(x)}</div><div></div></div>`).join('');
  } else if(kind==='parking'){
   title='▤ מידע בנוגע לחניה';
+  toolbar=`<button class="primary" onclick="window.open('./usa_trip_parking_transit_summary.pdf','_blank')">📄 פתיחת הסיכום המלא ב־PDF</button>`;
   DAYS.filter(d=>d.transport).forEach(d=>rows+=`<div class="list-row"><div>${esc(d.display)}</div><div><b>${esc(d.title)}</b><br><small>${esc(d.transport)}</small></div><div></div></div>`);
   CRITICAL.forEach(x=>rows+=`<div class="list-row"><div>⚠️</div><div>${esc(x)}</div><div></div></div>`);
  } else if(kind==='restaurants'){
+
   title='🍴 מסעדות';
   DAYS.forEach((d,i)=>(d.food||[]).forEach((x,xi)=>{
     const foodKey=(x.name+'|'+(x.address||'')).replace(/[^A-Za-z0-9א-ת]+/g,'_');

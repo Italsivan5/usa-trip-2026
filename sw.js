@@ -1,8 +1,8 @@
-const CACHE_NAME='usa-trip-2026-v13-1-root-icons-20260904';
-const RUNTIME='usa-trip-runtime-v13-1-root-icons';
+const CACHE_NAME='usa-trip-2026-v13-2-parking-pdf-20260905';
+const RUNTIME='usa-trip-runtime-v13-2-parking-pdf';
 const APP_SHELL=[
   './','./index.html','./config.js','./cloud.js','./weather.js','./manifest.webmanifest','./offline.html',
-  './icon-192.png','./icon-512.png'
+  './icon-192.png','./icon-512.png','./usa_trip_parking_transit_summary.pdf'
 ];
 
 self.addEventListener('install',event=>{

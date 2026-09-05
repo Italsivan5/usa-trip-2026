@@ -1,39 +1,21 @@
-# V13.1 — PWA Root Icons Fix
+# V13.2 — Parking & Transit PDF
 
-הקבצים icon-192.png ו-icon-512.png אצלך נמצאים בשורש ה-Repository, ליד index.html.
-גרסה זו מתקנת את כל ההפניות כך שיתאימו למבנה הזה.
+להעלות ל-GitHub:
+- index.html — להחליף
+- sw.js — להחליף
+- usa_trip_parking_transit_summary.pdf — להוסיף לשורש
 
-## להחליף ב-GitHub רק:
-- index.html
-- sw.js
-- manifest.webmanifest
+ה-PDF צריך להיות באותה רמה כמו index.html.
 
-## להשאיר כפי שהם:
-- icon-192.png
-- icon-512.png
+לא להחליף:
 - config.js
 - cloud.js
 - weather.js
-- offline.html
-- תיקיית SQL / Supabase
-- כל יתר הקבצים
+- manifest.webmanifest
+- icon-192.png
+- icon-512.png
 
-## אחרי ה-Commit:
-1. להמתין ש-GitHub Pages יסיים Deployment.
-2. בטלפון למחוק את קיצור הדרך הישן שכבר נוצר.
-3. לפתוח את כתובת האתר ב-Chrome.
-4. לבצע Reload / Refresh.
-5. להמתין 10-20 שניות.
-6. לסגור את הטאב ולפתוח שוב את האתר.
-7. Chrome > ⋮ > התקנה ויצירת קיצור דרך.
-8. לבדוק אם כעת מוצעת "התקנה" ולא רק "יצירת קיצור דרך".
-
-## בדיקה מהירה
-הכתובות הבאות צריכות להציג תמונה ולא 404:
-- .../icon-192.png
-- .../icon-512.png
-
-והכתובת:
-- .../manifest.webmanifest
-
-צריכה לפתוח את קובץ ה-manifest.
+מה נוסף:
+- קישור ל-PDF בתוך "מסמכים".
+- קישור ל-PDF בתוך "מידע בנוגע לחניה".
+- ה-PDF נוסף ל-cache של ה-PWA, כדי שיהיה זמין גם Offline.
